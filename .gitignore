@@ -1,0 +1,58 @@
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Monorepo extras
+packages/**/node_modules/
+packages/**/dist/
+packages/**/build/
+packages/**/logs/
+packages/**/.env
+packages/**/.env.*
+**/.env
+**/.env.*
+!.env.example
+
+# Local data
+dump/
+dumps/
+data/
+logs/
+
+# Testing
+coverage/
+*.log
+
+# Production
+dist/
+build/
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Cache
+.cache/
+.parcel-cache/
+.eslintcache
+

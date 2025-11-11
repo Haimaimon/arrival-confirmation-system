@@ -12,15 +12,59 @@ export class RedisCacheService implements ICacheService {
   private hits: number = 0;
   private misses: number = 0;
 
-  constructor(config: { host: string; port: number; password?: string; db?: number }) {
-    this.client = createClient({
-      socket: {
+  constructor(config: {
+    url?: string;
+    host?: string;
+    port?: number;
+    password?: string;
+    db?: number;
+    useTLS?: boolean;
+    rejectUnauthorized?: boolean;
+  }) {
+    const redisUrl = config.url || process.env.REDIS_URL;
+    const redissScheme = redisUrl ? redisUrl.startsWith('rediss://') : false;
+    const envTls = process.env.REDIS_TLS === 'true' || process.env.REDIS_SSL === 'true';
+    const useTLS =
+      typeof config.useTLS === 'boolean' ? config.useTLS : redissScheme || envTls;
+    const rejectUnauthorizedEnv = process.env.REDIS_REJECT_UNAUTHORIZED;
+    const rejectUnauthorized =
+      config.rejectUnauthorized ??
+      (rejectUnauthorizedEnv ? rejectUnauthorizedEnv === 'true' : false);
+
+    const socketOptions: any = {};
+    if (useTLS) {
+      socketOptions.tls = true;
+      socketOptions.rejectUnauthorized = rejectUnauthorized;
+    }
+
+    if (redisUrl) {
+      const safeRedisUrl = redisUrl.replace(/:\/\/.*@/, '://***@');
+      logger.info('🔌 Connecting to Redis via URL', { url: safeRedisUrl, useTLS, rejectUnauthorized });
+      this.client = createClient({
+        url: redisUrl,
+        socket: socketOptions,
+        password: config.password || process.env.REDIS_PASSWORD,
+        database: config.db ?? parseInt(process.env.REDIS_DB || '0', 10),
+      });
+    } else {
+      if (!config.host) {
+        throw new Error('Redis host is required when REDIS_URL is not provided');
+      }
+      logger.info('🔌 Connecting to Redis via host/port', {
         host: config.host,
         port: config.port,
-      },
-      password: config.password,
-      database: config.db || 0,
-    });
+        useTLS,
+      });
+      this.client = createClient({
+        socket: {
+          host: config.host,
+          port: config.port,
+          ...socketOptions,
+        },
+        password: config.password,
+        database: config.db || 0,
+      });
+    }
 
     this.client.on('error', (err: Error) => {
       console.error('❌ Redis Client Error', err);

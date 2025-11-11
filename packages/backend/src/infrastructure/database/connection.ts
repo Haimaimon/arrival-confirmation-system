@@ -3,6 +3,7 @@
  */
 
 import { Pool, PoolConfig, QueryResult, QueryResultRow } from 'pg';
+import { URL } from 'url';
 import { logger } from '../services/LoggerService';
 
 export class DatabaseConnection {
@@ -10,7 +11,24 @@ export class DatabaseConnection {
   private originalQuery: any;
 
   constructor(config: PoolConfig) {
-    this.pool = new Pool(config);
+    const isProd = process.env.NODE_ENV === 'production';
+    let poolConfig = { ...config };
+
+    if (process.env.DATABASE_URL) {
+      poolConfig = this.getConfigFromDatabaseUrl(process.env.DATABASE_URL, config);
+    }
+
+    if (isProd) {
+      poolConfig.ssl = {
+        rejectUnauthorized: false,
+      };
+    } else if (process.env.DB_SSL === 'true') {
+      poolConfig.ssl = {
+        rejectUnauthorized: false,
+      };
+    }
+
+    this.pool = new Pool(poolConfig);
 
     // Intercept query method to add logging
     this.originalQuery = this.pool.query.bind(this.pool);
@@ -28,6 +46,26 @@ export class DatabaseConnection {
     this.pool.on('remove', () => {
       logger.debug('📊 Database connection removed from pool');
     });
+  }
+
+  private getConfigFromDatabaseUrl(databaseUrl: string, defaults: PoolConfig): PoolConfig {
+    try {
+      const url = new URL(databaseUrl);
+      const [user, password] = url.username ? [url.username, url.password] : [defaults.user, defaults.password];
+      const port = url.port ? parseInt(url.port, 10) : defaults.port;
+
+      return {
+        ...defaults,
+        host: url.hostname || defaults.host,
+        port: port || defaults.port,
+        database: url.pathname ? url.pathname.replace(/^\//, '') : defaults.database,
+        user,
+        password,
+      };
+    } catch (error) {
+      logger.error('❌ Failed to parse DATABASE_URL', error as Error);
+      return defaults;
+    }
   }
 
   /**

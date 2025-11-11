@@ -11,6 +11,10 @@ export interface AuthRequest extends Request {
     email: string;
     role: string;
   };
+  params: any;
+  query: any;
+  body: any;
+  file?: Express.Multer.File;
 }
 
 const jwtService = JWTService.getInstance();

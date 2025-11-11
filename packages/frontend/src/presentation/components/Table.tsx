@@ -2,7 +2,7 @@
  * Presentation Layer - Table Component
  */
 
-import { FC, ReactNode } from 'react';
+import { ReactNode } from 'react';
 
 interface Column<T> {
   key: string;

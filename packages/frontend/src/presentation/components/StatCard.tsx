@@ -11,6 +11,7 @@ interface StatCardProps {
   trend?: {
     value: number;
     isPositive: boolean;
+    label?: string;
   };
   color?: 'blue' | 'green' | 'yellow' | 'red' | 'gray';
 }
@@ -31,13 +32,16 @@ export const StatCard: FC<StatCardProps> = ({ title, value, icon, trend, color =
           <p className="text-sm text-gray-500 mb-1">{title}</p>
           <p className="text-3xl font-bold text-gray-900">{value}</p>
           {trend && (
-            <p
-              className={`text-sm mt-2 ${
-                trend.isPositive ? 'text-success-600' : 'text-danger-600'
-              }`}
-            >
-              {trend.isPositive ? '+' : '-'}{Math.abs(trend.value)}%
-            </p>
+            <div className="mt-2 text-sm">
+              {trend.label && <span className="text-gray-500 mr-2">{trend.label}</span>}
+              <span
+                className={trend.isPositive ? 'text-success-600' : 'text-danger-600'}
+              >
+                {trend.isPositive ? '+' : '-'}
+                {Math.abs(trend.value)}
+                {trend.label ? '' : '%'}
+              </span>
+            </div>
           )}
         </div>
         {icon && (

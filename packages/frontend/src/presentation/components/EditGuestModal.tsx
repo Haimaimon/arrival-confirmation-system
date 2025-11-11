@@ -122,7 +122,7 @@ export const EditGuestModal: FC<EditGuestModalProps> = ({
   if (!guest) return null;
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="✏️ ערוך אורח" size="large">
+    <Modal isOpen={isOpen} onClose={onClose} title="✏️ ערוך אורח" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Info */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">

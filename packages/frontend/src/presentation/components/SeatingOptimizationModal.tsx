@@ -7,7 +7,7 @@ import { FC, useMemo } from 'react';
 import { Modal } from './Modal';
 import { Button } from './Button';
 import { Sparkles, TrendingDown, Users, DollarSign, AlertCircle } from 'lucide-react';
-import { SeatingStats, TableWithStats } from '../../domain/entities/Table';
+import { SeatingStats } from '../../domain/entities/Table';
 
 interface SeatingOptimizationModalProps {
   isOpen: boolean;
@@ -32,7 +32,7 @@ export const SeatingOptimizationModal: FC<SeatingOptimizationModalProps> = ({
 }) => {
   // Calculate optimization suggestions
   const suggestions = useMemo((): OptimizationSuggestion[] => {
-    const { tables, emptySeats, totalOccupied } = stats;
+    const { tables, emptySeats } = stats;
     const suggestions: OptimizationSuggestion[] = [];
 
     // Sort tables by occupancy rate
@@ -121,7 +121,7 @@ export const SeatingOptimizationModal: FC<SeatingOptimizationModalProps> = ({
       isOpen={isOpen} 
       onClose={onClose} 
       title="✨ אופטימיזציה חכמה של סידור הושבה"
-      size="large"
+      size="lg"
     >
       <div className="space-y-6">
         {/* Header Info */}

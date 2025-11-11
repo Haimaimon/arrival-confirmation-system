@@ -86,7 +86,7 @@ export const SendNotificationModal: FC<SendNotificationModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="📤 שלח הודעה" size="large">
+    <Modal isOpen={isOpen} onClose={onClose} title="📤 שלח הודעה" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Guest Info */}
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 p-4 rounded-lg">

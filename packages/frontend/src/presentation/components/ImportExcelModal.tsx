@@ -119,7 +119,7 @@ export const ImportExcelModal: FC<ImportExcelModalProps> = ({ isOpen, onClose, e
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="📊 ייבוא אורחים מאקסל" size="large">
+    <Modal isOpen={isOpen} onClose={handleClose} title="📊 ייבוא אורחים מאקסל" size="lg">
       <div className="space-y-6">
         {/* Instructions */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg border border-blue-200">

@@ -20,7 +20,7 @@ export interface Guest {
   eventId: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone?: string;
   email?: string;
   type: string; // Can be GROOM, BRIDE, MUTUAL or any custom type
   status: GuestStatus;

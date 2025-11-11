@@ -7,9 +7,6 @@ import { Outlet, NavLink } from 'react-router-dom';
 import { 
   Home, 
   Calendar, 
-  Users, 
-  Bell, 
-  Settings, 
   LogOut,
   LayoutDashboard
 } from 'lucide-react';

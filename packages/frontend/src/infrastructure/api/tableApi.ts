@@ -5,7 +5,6 @@
 import { apiClient } from './apiClient';
 import {
   Table,
-  TableWithStats,
   SeatingStats,
   CreateTableDto,
   UpdateTableDto,

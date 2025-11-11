@@ -4,7 +4,7 @@
  */
 
 import { FC, useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams } from 'react-router-dom';
 import { invitationApi, InvitationDetails } from '../../infrastructure/api/invitationApi';
 import { Heart, Calendar, MapPin, Users, CheckCircle, XCircle, HelpCircle, Loader2, Send, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
@@ -13,7 +13,6 @@ type AttendanceResponse = 'ATTENDING' | 'NOT_ATTENDING' | 'MAYBE';
 
 const GuestInvitationPage: FC = () => {
   const { token } = useParams<{ token: string }>();
-  const navigate = useNavigate();
 
   const [details, setDetails] = useState<InvitationDetails | null>(null);
   const [isLoading, setIsLoading] = useState(true);

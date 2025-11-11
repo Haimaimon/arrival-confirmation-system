@@ -90,7 +90,7 @@ export const AssignGuestsModal: FC<AssignGuestsModalProps> = ({
       isOpen={isOpen} 
       onClose={onClose} 
       title={`👥 שיוך אורחים לשולחן ${table.tableNumber}`}
-      size="large"
+      size="lg"
     >
       <div className="space-y-6">
         {/* Table Info */}

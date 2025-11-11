@@ -8,13 +8,13 @@ import { useParams } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { StatCard } from '../components/StatCard';
-import { useGuests, useImportGuests, useConfirmGuest, useUpdateGuest, useDeleteGuest } from '../../application/hooks/useGuests';
+import { useGuests, useConfirmGuest, useUpdateGuest, useDeleteGuest } from '../../application/hooks/useGuests';
 import { useRealtimeEvent } from '../../application/hooks/useRealtimeEvent';
 import { Guest, GuestStatus, getGuestStatusLabel, getGuestStatusColor } from '../../domain/entities/Guest';
 import { 
   Upload, UserPlus, Download, Phone, MessageSquare, Mail, 
-  Search, Filter, Users, CheckCircle, Clock, XCircle, 
-  Edit, Trash2, Send, FileSpreadsheet, X, Link2 
+  Search, Users, CheckCircle, Clock, XCircle, 
+  Edit, Trash2, Send, X, Link2 
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { AddGuestModal } from '../components/AddGuestModal';
@@ -260,19 +260,19 @@ const GuestsPage: FC = () => {
           title="סה״כ אורחים"
           value={stats.total}
           icon={<Users className="h-6 w-6 text-blue-600" />}
-          trend={{ value: stats.totalInvited, label: 'מוזמנים' }}
+          trend={{ value: stats.totalInvited, label: 'מוזמנים', isPositive: true }}
         />
         <StatCard
           title="אישרו"
           value={stats.confirmed}
           icon={<CheckCircle className="h-6 w-6 text-green-600" />}
-          trend={{ value: stats.confirmationRate, label: '% אישורים' }}
+          trend={{ value: stats.confirmationRate, label: '% אישורים', isPositive: stats.confirmationRate >= 0 }}
         />
         <StatCard
           title="ממתינים"
           value={stats.pending}
           icon={<Clock className="h-6 w-6 text-yellow-600" />}
-          trend={{ value: stats.totalInvited - stats.totalConfirmed, label: 'טרם אישרו' }}
+          trend={{ value: stats.totalInvited - stats.totalConfirmed, label: 'טרם אישרו', isPositive: false }}
         />
         <StatCard
           title="דחו"

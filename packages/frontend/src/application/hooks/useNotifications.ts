@@ -13,7 +13,7 @@ export function useSendNotification() {
   return useMutation({
     mutationFn: ({ guestId, data }: { guestId: string; data: SendNotificationDto }) =>
       notificationApi.sendNotification(guestId, data),
-    onSuccess: (notification, variables) => {
+    onSuccess: (_notification, variables) => {
       const typeLabels = {
         SMS: 'SMS',
         WHATSAPP: 'WhatsApp',

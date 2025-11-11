@@ -4,6 +4,7 @@
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { guestApi, GuestFilters, CreateGuestDto } from '../../infrastructure/api/guestApi';
+import { Guest } from '../../domain/entities/Guest';
 import toast from 'react-hot-toast';
 
 export function useGuests(filters: GuestFilters) {
@@ -26,12 +27,12 @@ export function useCreateGuest() {
 
   return useMutation({
     mutationFn: (data: CreateGuestDto) => guestApi.createGuest(data),
-    onSuccess: (result, variables) => {
+    onSuccess: (_result, variables) => {
       toast.success('אורח נוסף בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['guests', { eventId: variables.eventId }] });
       queryClient.invalidateQueries({ queryKey: ['guests'] });
     },
-    onError: (error: any) => {
+    onError: () => {
       toast.error('שגיאה בהוספת אורח');
     },
   });

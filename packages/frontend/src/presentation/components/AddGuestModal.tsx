@@ -124,7 +124,7 @@ export const AddGuestModal: FC<AddGuestModalProps> = ({ isOpen, onClose, eventId
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="➕ הוסף אורח חדש" size="large">
+    <Modal isOpen={isOpen} onClose={handleClose} title="➕ הוסף אורח חדש" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Personal Info */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-4 rounded-lg">

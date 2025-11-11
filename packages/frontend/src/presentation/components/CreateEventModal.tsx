@@ -170,7 +170,7 @@ export const CreateEventModal: React.FC<CreateEventModalProps> = ({ isOpen, onCl
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="צור אירוע חדש" size="large">
+    <Modal isOpen={isOpen} onClose={onClose} title="צור אירוע חדש" size="lg">
       <form
         onSubmit={handleSubmit}
         onKeyDown={(e) => {

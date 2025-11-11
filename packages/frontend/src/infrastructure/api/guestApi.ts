@@ -9,7 +9,7 @@ export interface CreateGuestDto {
   eventId: string;
   firstName: string;
   lastName: string;
-  phone: string;
+  phone?: string;
   email?: string;
   type: string;
   numberOfGuests: number;

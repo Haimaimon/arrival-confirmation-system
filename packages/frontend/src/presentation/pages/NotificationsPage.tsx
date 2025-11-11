@@ -3,14 +3,13 @@
  */
 
 import { FC } from 'react';
-import { useParams } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
 import { Table } from '../components/Table';
 import { MessageSquare, Phone, Mail, Send } from 'lucide-react';
 
 const NotificationsPage: FC = () => {
-  const { eventId } = useParams<{ eventId: string }>();
+  const pageTitle = 'התראות והודעות';
 
   // TODO: Fetch real notifications data
   const notifications = [
@@ -115,7 +114,7 @@ const NotificationsPage: FC = () => {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">התראות והודעות</h1>
+          <h1 className="text-3xl font-bold text-gray-900 mb-2">{pageTitle}</h1>
           <p className="text-gray-500">{notifications.length} הודעות נשלחו</p>
         </div>
         <Button variant="primary" icon={<Send className="h-5 w-5" />}>

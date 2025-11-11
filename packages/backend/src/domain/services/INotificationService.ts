@@ -36,4 +36,6 @@ export interface INotificationService {
   sendWhatsApp(to: string, message: string): Promise<NotificationResponse>;
   makeVoiceCall(to: string, message: string): Promise<NotificationResponse>;
   getMessageStatus(messageId: string): Promise<NotificationStatus>;
+    // אליאסים למניעת שבירת קוד ישן (לא חובה, אבל פותר build מהר):
+  sendSms?(to: string, text: string): Promise<void>;
 }

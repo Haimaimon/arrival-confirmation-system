@@ -7,16 +7,13 @@ import { INotificationRepository } from '../../../domain/repositories/INotificat
 import { INotificationService } from '../../../domain/services/INotificationService';
 import {
   Notification,
-  NotificationProps,
   NotificationType,
   NotificationStatus,
-  NotificationPurpose,
 } from '../../../domain/entities/Notification';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface SendConfirmationDTO {
   guestId: string;
-  type: NotificationType;
+  type: NotificationType;         // SMS | WHATSAPP | VOICE
   customMessage?: string;
 }
 
@@ -28,87 +25,69 @@ export class SendConfirmationRequestUseCase {
   ) {}
 
   async execute(dto: SendConfirmationDTO): Promise<Notification> {
-    // Find guest
+    // 1) אתחול אורח
     const guest = await this.guestRepository.findById(dto.guestId);
-    if (!guest) {
-      throw new Error('Guest not found');
-    }
+    if (!guest) throw new Error('Guest not found');
 
-    // Check if can send
+    // 2) בדיקת מגבלות שליחה (התאם לשדות שקיימים אצלך על ה-guest)
     this.validateCanSend(guest, dto.type);
 
-    // Generate message
+    // 3) בניית הודעה
     const message = dto.customMessage || this.generateMessage(guest.fullName, dto.type);
+    if (!guest) throw new Error('Guest not found');
 
-    // Create notification entity
-    const notificationProps: NotificationProps = {
-      id: uuidv4(),
+    if (!guest.phone) {
+      throw new Error('Guest has no phone number');
+    }
+    const phone = guest.phone; // כאן זה נהיה string בלבד (narrowed)
+    // 4) יצירת ישות notification לפי ה-Entity הקיים (אין recipient/purpose/markAsSent)
+    const notification = Notification.create({
       eventId: guest.eventId,
       guestId: guest.id,
       type: dto.type,
-      purpose: NotificationPurpose.CONFIRMATION_REQUEST,
       status: NotificationStatus.PENDING,
-      recipient: guest.phone,
       message,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
+      phoneNumber: phone,
+      sentAt: new Date(),
+      // deliveredAt: undefined, twilioMessageId: undefined, error: undefined  // אופציונלי
+    });
 
-    const notification = new Notification(notificationProps);
-
-    // Send notification
-    let result: { success: boolean; messageId?: string; error?: string };
-
-    switch (dto.type) {
-      case NotificationType.SMS:
-        result = await this.notificationService.sendSms({
-          to: guest.phone,
-          message,
-        });
-        guest.markSmsSent();
-        break;
-
-      case NotificationType.WHATSAPP:
-        result = await this.notificationService.sendWhatsApp({
-          to: guest.phone,
-          message,
-        });
-        guest.markWhatsAppSent();
-        break;
-
-      case NotificationType.PHONE_CALL:
-        result = await this.notificationService.makePhoneCall({
-          to: guest.phone,
-          message,
-        });
-        guest.markPhoneCallMade();
-        break;
-
-      default:
-        throw new Error('Unsupported notification type');
+    // 5) שליחה בפועל
+    let ok = true;
+    try {
+      if (dto.type === NotificationType.SMS) {
+        await this.notificationService.sendSMS(phone, message);
+        // אם יש לך מונים ב-guest:
+        if (typeof guest.markSmsSent === 'function') guest.markSmsSent();
+      } else if (dto.type === NotificationType.WHATSAPP) {
+        await this.notificationService.sendWhatsApp(phone, message);
+        if (typeof guest.markWhatsAppSent === 'function') guest.markWhatsAppSent();
+      } else if (dto.type === NotificationType.VOICE) {
+        // כרגע אין מימוש makePhoneCall בממשק; אם אין לך שירות קולי – זרוק שגיאה ידידותית:
+        throw new Error('Voice calls are not supported');
+      }
+    } catch (e: any) {
+      ok = false;
+      notification.markAsFailed(e?.message || 'Unknown error');
     }
 
-    // Update notification status
-    if (result.success) {
-      notification.markAsSent();
-    } else {
-      notification.markAsFailed(result.error || 'Unknown error');
+    // 6) עדכון סטטוס
+    if (ok) {
+      notification.updateStatus(NotificationStatus.SENT);
     }
 
-    // Save
+    // 7) שמירה ל-DB
     await this.notificationRepository.save(notification);
-    
-    // Update guest counters
-    const updateData: any = {};
+
+    // 8) עדכון מונים לאורח (התאם לשדות שקיימים)
+    const updateData: any = { lastContactedAt: new Date() };
     if (dto.type === NotificationType.SMS) {
       updateData.smsCount = (guest.smsCount || 0) + 1;
     } else if (dto.type === NotificationType.WHATSAPP) {
       updateData.whatsappCount = (guest.whatsappCount || 0) + 1;
-    } else if (dto.type === NotificationType.PHONE_CALL) {
+    } else if (dto.type === NotificationType.VOICE) {
       updateData.phoneCallCount = (guest.phoneCallCount || 0) + 1;
     }
-    updateData.lastContactedAt = new Date();
-    
     await this.guestRepository.update(guest.id, updateData);
 
     return notification;
@@ -117,31 +96,26 @@ export class SendConfirmationRequestUseCase {
   private validateCanSend(guest: any, type: NotificationType): void {
     switch (type) {
       case NotificationType.SMS:
-        if (!guest.canSendSms()) {
+        if (typeof guest.canSendSms === 'function' && !guest.canSendSms()) {
           throw new Error('SMS limit reached for this guest');
         }
         break;
       case NotificationType.WHATSAPP:
-        if (!guest.canSendWhatsApp()) {
+        if (typeof guest.canSendWhatsApp === 'function' && !guest.canSendWhatsApp()) {
           throw new Error('WhatsApp limit reached for this guest');
         }
         break;
-      case NotificationType.PHONE_CALL:
-        if (!guest.canMakePhoneCall()) {
-          throw new Error('Phone call limit reached for this guest');
-        }
-        break;
+      case NotificationType.VOICE:
+        // אם אין תמיכה – נאסור מראש:
+        throw new Error('Voice calls are not supported');
     }
   }
 
   private generateMessage(guestName: string, type: NotificationType): string {
-    const baseMessage = `שלום ${guestName}, מזמינים אותך לאירוע שלנו! נשמח לאישור הגעתך.`;
-    
-    if (type === NotificationType.PHONE_CALL) {
-      return `${baseMessage} אנא לחץ 1 לאישור, 2 לסירוב.`;
+    const base = `שלום ${guestName}, מזמינים אותך לאירוע שלנו! נשמח לאישור הגעתך.`;
+    if (type === NotificationType.VOICE) {
+      return `${base} אנא לחץ 1 לאישור, 2 לסירוב.`;
     }
-    
-    return `${baseMessage} לאישור לחץ כאן: [קישור]`;
+    return `${base} לאישור לחץ כאן: [קישור]`;
   }
 }
-

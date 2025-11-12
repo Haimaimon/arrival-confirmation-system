@@ -12,7 +12,8 @@ export interface SendNotificationDto {
   eventId: string;
   guestId: string;
   type: NotificationType;
-  message?: string; // Optional custom message
+  message?: string;
+  batchId?: string;
 }
 
 export class SendNotificationUseCase {
@@ -82,6 +83,7 @@ export class SendNotificationUseCase {
       error: result.error,
       sentAt: new Date(),
       deliveredAt: result.status === NotificationStatus.DELIVERED ? new Date() : undefined,
+      batchId: dto.batchId,
     });
 
     // Save notification

@@ -3,7 +3,7 @@
  * Full-featured guest management with Excel import, filters, and beautiful UI
  */
 
-import { FC, useState, useMemo } from 'react';
+import { FC, useState, useMemo, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card } from '../components/Card';
 import { Button } from '../components/Button';
@@ -21,9 +21,10 @@ import { AddGuestModal } from '../components/AddGuestModal';
 import { ImportExcelModal } from '../components/ImportExcelModal';
 import { EditGuestModal } from '../components/EditGuestModal';
 import { SendNotificationModal } from '../components/SendNotificationModal';
-import { useSendNotification } from '../../application/hooks/useNotifications';
+import { useSendNotification, useSendBulkNotifications } from '../../application/hooks/useNotifications';
 import { useSendInvitationWhatsApp } from '../../application/hooks/useInvitation';
 import { invitationApi } from '../../infrastructure/api/invitationApi';
+import { BulkNotificationModal } from '../components/BulkNotificationModal';
 
 const GuestsPage: FC = () => {
   const { eventId } = useParams<{ eventId: string }>();
@@ -70,12 +71,25 @@ const GuestsPage: FC = () => {
   // Real-time updates
   useRealtimeEvent(eventId!);
 
+  const [selectedGuestIds, setSelectedGuestIds] = useState<string[]>([]);
+  const [isBulkModalOpen, setIsBulkModalOpen] = useState(false);
+  const [bulkMode, setBulkMode] = useState<'selected' | 'all'>('selected');
+
   // Mutations
   const confirmMutation = useConfirmGuest();
   const updateMutation = useUpdateGuest();
   const deleteMutation = useDeleteGuest();
   const sendNotificationMutation = useSendNotification();
   const sendWhatsAppMutation = useSendInvitationWhatsApp();
+  const bulkNotificationMutation = useSendBulkNotifications(eventId!);
+
+  useEffect(() => {
+    setSelectedGuestIds([]);
+  }, [eventId]);
+
+  useEffect(() => {
+    setSelectedGuestIds((prev) => prev.filter((id) => guests.some((guest) => guest.id === id)));
+  }, [guests]);
 
   // Calculate statistics
   const stats = useMemo(() => {
@@ -133,7 +147,71 @@ const GuestsPage: FC = () => {
     console.log('🔍 Filters:', { searchQuery, statusFilter, sideFilter, groupFilter });
     
     return filtered;
-  }, [guests, searchQuery, statusFilter, sideFilter, groupFilter]);
+}, [guests, searchQuery, statusFilter, sideFilter, groupFilter]);
+
+  const selectedGuests = useMemo(
+    () => guests.filter((guest) => selectedGuestIds.includes(guest.id)),
+    [guests, selectedGuestIds]
+  );
+
+  const isAllSelected =
+    filteredGuests.length > 0 &&
+    filteredGuests.every((guest) => selectedGuestIds.includes(guest.id));
+
+  const handleToggleSelectGuest = (guestId: string) => {
+    setSelectedGuestIds((prev) =>
+      prev.includes(guestId)
+        ? prev.filter((id) => id !== guestId)
+        : [...prev, guestId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    if (isAllSelected) {
+      setSelectedGuestIds((prev) =>
+        prev.filter((id) => !filteredGuests.some((guest) => guest.id === id))
+      );
+    } else {
+      const newIds = filteredGuests.map((guest) => guest.id);
+      setSelectedGuestIds((prev) => Array.from(new Set([...prev, ...newIds])));
+    }
+  };
+
+  const clearSelection = () => setSelectedGuestIds([]);
+
+  const openBulkModalForSelected = () => {
+    if (selectedGuestIds.length === 0) return;
+    setBulkMode('selected');
+    setIsBulkModalOpen(true);
+  };
+
+  const openBulkModalForAll = () => {
+    setBulkMode('all');
+    setIsBulkModalOpen(true);
+  };
+
+  const handleBulkSend = ({
+    type,
+    message,
+  }: {
+    type: 'SMS' | 'WHATSAPP' | 'VOICE';
+    message?: string;
+  }) => {
+    const payload = {
+      type,
+      message,
+      guestIds: bulkMode === 'selected' ? selectedGuestIds : undefined,
+    };
+
+    bulkNotificationMutation.mutate(payload, {
+      onSuccess: () => {
+        setIsBulkModalOpen(false);
+        if (bulkMode === 'selected') {
+          clearSelection();
+        }
+      },
+    });
+  };
 
   const handleConfirm = (guestId: string) => {
     confirmMutation.mutate({ id: guestId });
@@ -358,6 +436,44 @@ const GuestsPage: FC = () => {
         )}
       </Card>
 
+      {/* Bulk actions */}
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 bg-white border border-gray-200 rounded-xl px-4 py-3">
+        <div className="text-sm text-gray-600">
+          {selectedGuestIds.length > 0 ? (
+            <span>
+              נבחרו <span className="font-semibold text-gray-900">{selectedGuestIds.length}</span> אורחים
+            </span>
+          ) : (
+            <span>בחר אורחים לשליחה מרוכזת או שלח לכל האורחים באירוע</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={openBulkModalForSelected}
+            disabled={selectedGuestIds.length === 0}
+            icon={<Send className="h-4 w-4" />}
+          >
+            שלח הודעה לנבחרים
+          </Button>
+          <Button
+            variant="primary"
+            size="sm"
+            onClick={openBulkModalForAll}
+            icon={<Send className="h-4 w-4" />}
+            disabled={guests.length === 0}
+          >
+            שלח לכל האורחים
+          </Button>
+          {selectedGuestIds.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={clearSelection}>
+              נקה בחירה
+            </Button>
+          )}
+        </div>
+      </div>
+
       {/* Guests Table */}
       <Card className="overflow-hidden">
         {isLoading ? (
@@ -389,6 +505,14 @@ const GuestsPage: FC = () => {
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
+                  <th className="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    <input
+                      type="checkbox"
+                      className="h-4 w-4 text-primary-600"
+                      checked={isAllSelected}
+                      onChange={handleToggleSelectAll}
+                    />
+                  </th>
                   <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
                     מס׳
                   </th>
@@ -416,11 +540,23 @@ const GuestsPage: FC = () => {
                 </tr>
               </thead>
               <tbody className="bg-white divide-y divide-gray-200">
-                {filteredGuests.map((guest, index) => (
+                {filteredGuests.map((guest, index) => {
+                  const isSelected = selectedGuestIds.includes(guest.id);
+                  return (
                     <tr
                       key={guest.id}
-                      className="hover:bg-gray-50 transition-colors animate-slideIn"
+                      className={`transition-colors animate-slideIn ${
+                        isSelected ? 'bg-primary-50/60' : 'hover:bg-gray-50'
+                      }`}
                     >
+                      <td className="px-4 py-4 text-center">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 text-primary-600"
+                          checked={isSelected}
+                          onChange={() => handleToggleSelectGuest(guest.id)}
+                        />
+                      </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                         {index + 1}
                       </td>
@@ -528,8 +664,9 @@ const GuestsPage: FC = () => {
                           </button>
                       </div>
                     </td>
-                  </tr>
-                ))}
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -566,6 +703,14 @@ const GuestsPage: FC = () => {
         guest={guestToMessage}
         onSend={handleSendNotification}
         isSending={sendNotificationMutation.isPending}
+      />
+      <BulkNotificationModal
+        isOpen={isBulkModalOpen}
+        onClose={() => setIsBulkModalOpen(false)}
+        guests={bulkMode === 'selected' ? selectedGuests : guests}
+        mode={bulkMode}
+        onSend={handleBulkSend}
+        isSending={bulkNotificationMutation.isPending}
       />
     </div>
   );

@@ -17,6 +17,7 @@ import { GreenApiWhatsAppService } from './infrastructure/services/GreenApiWhats
 import { PostgresGuestRepository } from './infrastructure/database/PostgresGuestRepository';
 import { PostgresEventRepository } from './infrastructure/database/PostgresEventRepository';
 import { PostgresNotificationRepository } from './infrastructure/database/PostgresNotificationRepository';
+import { PostgresNotificationBatchRepository } from './infrastructure/database/PostgresNotificationBatchRepository';
 import { PostgresTableRepository } from './infrastructure/database/PostgresTableRepository';
 import { GuestController } from './presentation/controllers/GuestController';
 import { EventController } from './presentation/controllers/EventController';
@@ -30,6 +31,8 @@ import { createGuestRoutes } from './presentation/routes/guestRoutes';
 import { createEventRoutes } from './presentation/routes/eventRoutes';
 import { createAuthRoutes } from './presentation/routes/authRoutes';
 import { createNotificationRoutes } from './presentation/routes/notificationRoutes';
+import { SendNotificationUseCase } from './application/use-cases/SendNotificationUseCase';
+import { SendBulkNotificationsUseCase } from './application/use-cases/notification/SendBulkNotificationsUseCase';
 import { createTestRoutes } from './presentation/routes/testRoutes';
 import { createTableRoutes } from './presentation/routes/tableRoutes';
 import { createGuestInvitationRoutes } from './presentation/routes/guestInvitationRoutes';
@@ -119,6 +122,7 @@ async function bootstrap() {
     const guestRepository = new PostgresGuestRepository(dbConnection.getPool());
     const eventRepository = new PostgresEventRepository(dbConnection.getPool());
     const notificationRepository = new PostgresNotificationRepository(dbConnection.getPool());
+    const notificationBatchRepository = new PostgresNotificationBatchRepository(dbConnection.getPool());
     const tableRepository = new PostgresTableRepository(dbConnection.getPool());
 
     // TODO: Initialize other repositories (User)
@@ -138,10 +142,25 @@ async function bootstrap() {
 
     const authController = new AuthController();
 
-    const notificationController = new NotificationController(
+    const sendNotificationUseCase = new SendNotificationUseCase(
       guestRepository,
       notificationRepository,
       notificationService
+    );
+
+    const sendBulkNotificationsUseCase = new SendBulkNotificationsUseCase(
+      guestRepository,
+      eventRepository,
+      notificationRepository,
+      notificationBatchRepository,
+      notificationService
+    );
+
+    const notificationController = new NotificationController(
+      guestRepository,
+      notificationRepository,
+      sendNotificationUseCase,
+      sendBulkNotificationsUseCase
     );
 
     const testController = new TestController();

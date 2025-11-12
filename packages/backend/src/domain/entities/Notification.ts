@@ -26,6 +26,7 @@ export interface NotificationProps {
   phoneNumber: string;
   twilioMessageId?: string;
   error?: string;
+  batchId?: string;
   sentAt: Date;
   deliveredAt?: Date;
   createdAt: Date;
@@ -69,6 +70,10 @@ export class Notification {
 
   get twilioMessageId(): string | undefined {
     return this.props.twilioMessageId;
+  }
+
+  get batchId(): string | undefined {
+    return this.props.batchId;
   }
 
   get error(): string | undefined {

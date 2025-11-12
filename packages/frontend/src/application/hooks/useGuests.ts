@@ -3,7 +3,7 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { guestApi, GuestFilters, CreateGuestDto } from '../../infrastructure/api/guestApi';
+import { guestApi, GuestFilters, CreateGuestDto, ImportResult } from '../../infrastructure/api/guestApi';
 import { Guest } from '../../domain/entities/Guest';
 import toast from 'react-hot-toast';
 
@@ -25,9 +25,9 @@ export function useGuest(id: string) {
 export function useCreateGuest() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Guest, unknown, CreateGuestDto>({
     mutationFn: (data: CreateGuestDto) => guestApi.createGuest(data),
-    onSuccess: (_result, variables) => {
+    onSuccess: (_result: Guest, variables: CreateGuestDto) => {
       toast.success('אורח נוסף בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['guests', { eventId: variables.eventId }] });
       queryClient.invalidateQueries({ queryKey: ['guests'] });
@@ -41,10 +41,10 @@ export function useCreateGuest() {
 export function useConfirmGuest() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Guest, unknown, { id: string; numberOfGuests?: number }>({
     mutationFn: ({ id, numberOfGuests }: { id: string; numberOfGuests?: number }) =>
       guestApi.confirmGuest(id, numberOfGuests),
-    onSuccess: (data) => {
+    onSuccess: (data: Guest) => {
       toast.success('אישור הגעה נשמר בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['guests'] });
       queryClient.invalidateQueries({ queryKey: ['guest', data.id] });
@@ -58,10 +58,10 @@ export function useConfirmGuest() {
 export function useImportGuests() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<ImportResult, unknown, { eventId: string; file: File }>({
     mutationFn: ({ eventId, file }: { eventId: string; file: File }) =>
       guestApi.importFromExcel(eventId, file),
-    onSuccess: (result, variables) => {
+    onSuccess: (result: ImportResult, variables: { eventId: string; file: File }) => {
       console.log('✅ Import successful:', result);
       toast.success(`יובאו ${result.successCount} אורחים בהצלחה`);
       if (result.failureCount > 0) {
@@ -83,10 +83,10 @@ export function useImportGuests() {
 export function useUpdateGuest() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Guest, unknown, { id: string; data: Partial<Guest> }>({
     mutationFn: ({ id, data }: { id: string; data: Partial<Guest> }) =>
       guestApi.updateGuest(id, data),
-    onSuccess: (updatedGuest) => {
+    onSuccess: (updatedGuest: Guest) => {
       toast.success('אורח עודכן בהצלחה');
       // Invalidate all guest queries for this specific event
       queryClient.invalidateQueries({ queryKey: ['guests', { eventId: updatedGuest.eventId }] });
@@ -101,9 +101,9 @@ export function useUpdateGuest() {
 export function useDeleteGuest() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<{ eventId: string }, unknown, string>({
     mutationFn: (id: string) => guestApi.deleteGuest(id),
-    onSuccess: (data) => {
+    onSuccess: (data: { eventId: string }) => {
       toast.success('אורח נמחק בהצלחה');
       // Invalidate all guest queries for this specific event
       queryClient.invalidateQueries({ queryKey: ['guests', { eventId: data.eventId }] });

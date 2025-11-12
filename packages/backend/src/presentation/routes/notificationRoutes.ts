@@ -24,7 +24,7 @@ export function createNotificationRoutes(controller: NotificationController): Ro
   router.get('/event/:eventId', controller.getEventNotifications);
 
   // Bulk send notifications
-  router.post('/bulk', controller.sendBulkNotifications);
+  router.post('/event/:eventId/bulk', controller.sendBulkNotifications);
 
   return router;
 }

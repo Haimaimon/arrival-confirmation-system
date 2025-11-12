@@ -4,7 +4,12 @@
  */
 
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { notificationApi, SendNotificationDto } from '../../infrastructure/api/notificationApi';
+import {
+  notificationApi,
+  SendNotificationDto,
+  BulkNotificationRequest,
+  BulkNotificationResponse,
+} from '../../infrastructure/api/notificationApi';
 import toast from 'react-hot-toast';
 
 export function useSendNotification() {
@@ -27,6 +32,30 @@ export function useSendNotification() {
     },
     onError: (error: any) => {
       toast.error(error.response?.data?.error || 'שגיאה בשליחת ההודעה');
+    },
+  });
+}
+
+export function useSendBulkNotifications(eventId: string) {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: BulkNotificationRequest) =>
+      notificationApi.sendBulkNotifications(eventId, data),
+    onSuccess: (result: BulkNotificationResponse) => {
+      const { summary } = result;
+      const message =
+        summary.failed === 0
+          ? `הודעה נשלחה בהצלחה ל-${summary.successful} אורחים`
+          : `נשלחו ${summary.successful} הודעות, ${summary.failed} נכשלו, ${summary.skipped} דולגו`;
+      toast.success(message, { duration: 5000 });
+      queryClient.invalidateQueries({ queryKey: ['guests'] });
+      queryClient.invalidateQueries({ queryKey: ['notifications', { eventId }] });
+    },
+    onError: (error: any) => {
+      const errorMessage =
+        error.response?.data?.error || error.message || 'שגיאה בשליחת הודעות מרוכזות';
+      toast.error(errorMessage);
     },
   });
 }

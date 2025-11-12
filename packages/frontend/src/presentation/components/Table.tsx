@@ -6,9 +6,11 @@ import { ReactNode } from 'react';
 
 interface Column<T> {
   key: string;
-  header: string;
+  header: ReactNode;
   render?: (row: T) => ReactNode;
   width?: string;
+  className?: string;
+  headerClassName?: string;
 }
 
 interface TableProps<T> {
@@ -50,7 +52,7 @@ export function Table<T>({
             {columns.map((column) => (
               <th
                 key={column.key}
-                className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                className={`px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider ${column.headerClassName ?? ''}`}
                 style={{ width: column.width }}
               >
                 {column.header}
@@ -62,7 +64,7 @@ export function Table<T>({
           {data.map((row) => (
             <tr key={keyExtractor(row)} className="hover:bg-gray-50 transition-colors">
               {columns.map((column) => (
-                <td key={column.key} className="px-6 py-4 whitespace-nowrap">
+                <td key={column.key} className={`px-6 py-4 whitespace-nowrap ${column.className ?? ''}`}>
                   {column.render ? column.render(row) : (row as any)[column.key]}
                 </td>
               ))}

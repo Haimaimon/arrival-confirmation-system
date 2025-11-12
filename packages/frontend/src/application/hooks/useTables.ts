@@ -6,6 +6,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { tableApi } from '../../infrastructure/api/tableApi';
 import {
+  Table,
   CreateTableDto,
   UpdateTableDto,
   AssignGuestDto,
@@ -41,9 +42,9 @@ export function useTables(eventId: string) {
 export function useCreateTable() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Table, unknown, CreateTableDto>({
     mutationFn: (data: CreateTableDto) => tableApi.createTable(data),
-    onSuccess: (_table, variables) => {
+    onSuccess: (_table: Table, variables: CreateTableDto) => {
       toast.success('שולחן נוצר בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['tableStats', variables.eventId] });
       queryClient.invalidateQueries({ queryKey: ['tables', variables.eventId] });
@@ -60,10 +61,10 @@ export function useCreateTable() {
 export function useUpdateTable() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<Table, unknown, { id: string; data: UpdateTableDto }>({
     mutationFn: ({ id, data }: { id: string; data: UpdateTableDto }) =>
       tableApi.updateTable(id, data),
-    onSuccess: (updatedTable) => {
+    onSuccess: (updatedTable: Table) => {
       toast.success('שולחן עודכן בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['tableStats', updatedTable.eventId] });
       queryClient.invalidateQueries({ queryKey: ['tables', updatedTable.eventId] });
@@ -80,10 +81,10 @@ export function useUpdateTable() {
 export function useDeleteTable() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<void, unknown, { id: string; eventId: string }>({
     mutationFn: ({ id }: { id: string; eventId: string }) =>
       tableApi.deleteTable(id),
-    onSuccess: (_data, variables) => {
+    onSuccess: (_data: void, variables: { id: string; eventId: string }) => {
       toast.success('שולחן נמחק בהצלחה');
       queryClient.invalidateQueries({ queryKey: ['tableStats', variables.eventId] });
       queryClient.invalidateQueries({ queryKey: ['tables', variables.eventId] });
@@ -100,10 +101,10 @@ export function useDeleteTable() {
 export function useAssignGuestToTable() {
   const queryClient = useQueryClient();
 
-  return useMutation({
+  return useMutation<any, unknown, AssignGuestDto & { eventId: string }>({
     mutationFn: (data: AssignGuestDto & { eventId: string }) =>
       tableApi.assignGuestToTable(data),
-    onSuccess: (_data, variables) => {
+    onSuccess: (_data: any, variables: AssignGuestDto & { eventId: string }) => {
       toast.success('אורח שוייך לשולחן בהצלחה');
       // Invalidate only table stats - it includes everything we need
       queryClient.invalidateQueries({ queryKey: ['tableStats', variables.eventId] });

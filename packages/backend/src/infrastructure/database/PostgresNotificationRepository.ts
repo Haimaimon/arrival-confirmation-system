@@ -19,9 +19,9 @@ export class PostgresNotificationRepository implements INotificationRepository {
     const query = `
       INSERT INTO notifications (
         id, event_id, guest_id, type, status, message, phone_number,
-        twilio_message_id, error, sent_at, delivered_at, created_at, updated_at
+        twilio_message_id, error, sent_at, delivered_at, created_at, updated_at, batch_id
       ) VALUES (
-        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
+        $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14
       )
       RETURNING *
     `;
@@ -40,6 +40,7 @@ export class PostgresNotificationRepository implements INotificationRepository {
       props.deliveredAt,
       props.createdAt,
       props.updatedAt,
+      props.batchId || null,
     ];
 
     const result = await this.pool.query(query, values);
@@ -162,6 +163,7 @@ export class PostgresNotificationRepository implements INotificationRepository {
       phoneNumber: row.phone_number,
       twilioMessageId: row.twilio_message_id,
       error: row.error,
+      batchId: row.batch_id || undefined,
       sentAt: row.sent_at,
       deliveredAt: row.delivered_at,
       createdAt: row.created_at,

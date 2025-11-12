@@ -5,9 +5,9 @@
 
 import { Response } from 'express';
 import { SendNotificationUseCase } from '../../application/use-cases/SendNotificationUseCase';
+import { SendBulkNotificationsUseCase } from '../../application/use-cases/notification/SendBulkNotificationsUseCase';
 import { IGuestRepository } from '../../domain/repositories/IGuestRepository';
 import { INotificationRepository } from '../../domain/repositories/INotificationRepository';
-import { INotificationService } from '../../domain/services/INotificationService';
 import { AuthRequest } from '../middlewares/authMiddleware';
 import { NotificationType } from '../../domain/entities/Notification';
 
@@ -15,7 +15,8 @@ export class NotificationController {
   constructor(
     private guestRepository: IGuestRepository,
     private notificationRepository: INotificationRepository,
-    private notificationService: INotificationService
+    private sendNotificationUseCase: SendNotificationUseCase,
+    private sendBulkNotificationsUseCase: SendBulkNotificationsUseCase
   ) {}
 
   /**
@@ -37,13 +38,7 @@ export class NotificationController {
         });
       }
 
-      const useCase = new SendNotificationUseCase(
-        this.guestRepository,
-        this.notificationRepository,
-        this.notificationService
-      );
-
-      const notification = await useCase.execute({
+      const notification = await this.sendNotificationUseCase.execute({
         eventId: guest.eventId,
         guestId,
         type: type as NotificationType,
@@ -115,52 +110,42 @@ export class NotificationController {
    */
   sendBulkNotifications = async (req: AuthRequest, res: Response) => {
     try {
+      const { eventId } = req.params;
       const { guestIds, type, message } = req.body;
 
-      if (!Array.isArray(guestIds) || guestIds.length === 0) {
+      if (!eventId) {
         return res.status(400).json({
           success: false,
-          error: 'guestIds must be a non-empty array',
+          error: 'Event ID is required',
         });
       }
 
-      const useCase = new SendNotificationUseCase(
-        this.guestRepository,
-        this.notificationRepository,
-        this.notificationService
-      );
-
-      const results = [];
-      const errors = [];
-
-      for (const guestId of guestIds) {
-        try {
-          const guest = await this.guestRepository.findById(guestId);
-          if (!guest) {
-            errors.push({ guestId, error: 'Guest not found' });
-            continue;
-          }
-
-          const notification = await useCase.execute({
-            eventId: guest.eventId,
-            guestId,
-            type: type as NotificationType,
-            message,
-          });
-
-          results.push(notification.toObject());
-        } catch (error: any) {
-          errors.push({ guestId, error: error.message });
-        }
+      if (type === undefined) {
+        return res.status(400).json({
+          success: false,
+          error: 'Notification type is required',
+        });
       }
+
+      const result = await this.sendBulkNotificationsUseCase.execute({
+        eventId,
+        guestIds,
+        type: type as NotificationType,
+        message,
+        initiatedBy: req.user?.userId,
+      });
 
       return res.json({
         success: true,
         data: {
-          sent: results.length,
-          failed: errors.length,
-          notifications: results,
-          errors,
+          batch: result.batch.toObject(),
+          summary: {
+            total: result.batch.totalRecipients,
+            successful: result.successful,
+            failed: result.failed,
+            skipped: result.skipped,
+          },
+          errors: result.errors,
         },
       });
     } catch (error: any) {
